@@ -9,42 +9,110 @@ import (
 
 // go test -v homework_test.go
 
-type CircularQueue struct {
-	values []int
-	// need to implement
+type CircularQueue[T int | int8 | int16 | int32 | int64] struct {
+	values            []T
+	size, front, rear int
 }
 
-func NewCircularQueue(size int) CircularQueue {
-	return CircularQueue{} // need to implement
+func NewCircularQueue[T int | int8 | int16 | int32 | int64](size int) CircularQueue[T] {
+	return CircularQueue[T]{
+		values: make([]T, size),
+		size:   size,
+		front:  -1,
+		rear:   -1,
+	}
 }
 
-func (q *CircularQueue) Push(value int) bool {
-	return false // need to implement
+func (q *CircularQueue[T]) Push(value T) bool {
+	if q.Full() {
+		return false
+	}
+
+	if q.Empty() {
+		q.front = 0
+	}
+
+	q.rear = (q.rear + 1) % q.size
+	q.values[q.rear] = value
+	return true
 }
 
-func (q *CircularQueue) Pop() bool {
-	return false // need to implement
+func (q *CircularQueue[T]) Pop() bool {
+	if q.Empty() {
+		return false
+	}
+
+	if q.front == q.rear {
+		q.front = -1
+		q.rear = -1
+		return true
+	}
+
+	q.front = (q.front + 1) % q.size
+	return true
 }
 
-func (q *CircularQueue) Front() int {
-	return -1 // need to implement
+func (q *CircularQueue[T]) Front() T {
+	if q.Empty() {
+		return -1
+	}
+
+	if q.Empty() {
+		return -1
+	}
+	res := q.values[q.front]
+	return res
+
+	//if q.front == q.rear {
+	//	result := q.values[q.front]
+	//	q.front = -1
+	//	q.rear = -1
+	//	return result
+	//}
+	//
+	//result := q.values[q.front]
+	//q.front = (q.front + 1) % q.size
+	//return result
 }
 
-func (q *CircularQueue) Back() int {
-	return -1 // need to implement
+func (q *CircularQueue[T]) Back() T {
+	if q.Empty() {
+		return -1
+	}
+
+	if q.Empty() {
+		return -1
+	}
+	res := q.values[q.rear]
+	return res
+
+	//if q.front == q.rear {
+	//	result := q.values[q.front]
+	//	q.front = -1
+	//	q.rear = -1
+	//	return result
+	//}
+	//
+	//result := q.values[q.rear]
+	//if q.rear == 0 {
+	//	q.rear = 5
+	//} else {
+	//	q.rear -= 1
+	//}
+	//return result
 }
 
-func (q *CircularQueue) Empty() bool {
-	return false // need to implement
+func (q *CircularQueue[T]) Empty() bool {
+	return q.rear == -1 && q.front == -1
 }
 
-func (q *CircularQueue) Full() bool {
-	return false // need to implement
+func (q *CircularQueue[T]) Full() bool {
+	return (q.front == 0 && q.rear == q.size-1) || q.front == q.rear+1
 }
 
 func TestCircularQueue(t *testing.T) {
 	const queueSize = 3
-	queue := NewCircularQueue(queueSize)
+	queue := NewCircularQueue[int](queueSize)
 
 	assert.True(t, queue.Empty())
 	assert.False(t, queue.Full())
