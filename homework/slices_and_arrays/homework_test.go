@@ -17,9 +17,9 @@ type CircularQueue[T int | int8 | int16 | int32 | int64] struct {
 func NewCircularQueue[T int | int8 | int16 | int32 | int64](size int) CircularQueue[T] {
 	return CircularQueue[T]{
 		values: make([]T, size),
-		size:   size,
-		front:  -1,
-		rear:   -1,
+		size:   0,
+		front:  0,
+		rear:   0,
 	}
 }
 
@@ -28,12 +28,9 @@ func (q *CircularQueue[T]) Push(value T) bool {
 		return false
 	}
 
-	if q.Empty() {
-		q.front = 0
-	}
-
-	q.rear = (q.rear + 1) % q.size
 	q.values[q.rear] = value
+	q.rear = (q.rear + 1) % len(q.values)
+	q.size++
 	return true
 }
 
@@ -42,13 +39,8 @@ func (q *CircularQueue[T]) Pop() bool {
 		return false
 	}
 
-	if q.front == q.rear {
-		q.front = -1
-		q.rear = -1
-		return true
-	}
-
-	q.front = (q.front + 1) % q.size
+	q.front = (q.front + 1) % len(q.values)
+	q.size--
 	return true
 }
 
@@ -57,22 +49,7 @@ func (q *CircularQueue[T]) Front() T {
 		return -1
 	}
 
-	if q.Empty() {
-		return -1
-	}
-	res := q.values[q.front]
-	return res
-
-	//if q.front == q.rear {
-	//	result := q.values[q.front]
-	//	q.front = -1
-	//	q.rear = -1
-	//	return result
-	//}
-	//
-	//result := q.values[q.front]
-	//q.front = (q.front + 1) % q.size
-	//return result
+	return q.values[q.front]
 }
 
 func (q *CircularQueue[T]) Back() T {
@@ -80,34 +57,15 @@ func (q *CircularQueue[T]) Back() T {
 		return -1
 	}
 
-	if q.Empty() {
-		return -1
-	}
-	res := q.values[q.rear]
-	return res
-
-	//if q.front == q.rear {
-	//	result := q.values[q.front]
-	//	q.front = -1
-	//	q.rear = -1
-	//	return result
-	//}
-	//
-	//result := q.values[q.rear]
-	//if q.rear == 0 {
-	//	q.rear = 5
-	//} else {
-	//	q.rear -= 1
-	//}
-	//return result
+	return q.values[(q.rear+len(q.values)-1)%len(q.values)] // one full positive circular increment followed by one shift to the left
 }
 
 func (q *CircularQueue[T]) Empty() bool {
-	return q.rear == -1 && q.front == -1
+	return q.size == 0
 }
 
 func (q *CircularQueue[T]) Full() bool {
-	return (q.front == 0 && q.rear == q.size-1) || q.front == q.rear+1
+	return q.size == len(q.values)
 }
 
 func TestCircularQueue(t *testing.T) {
