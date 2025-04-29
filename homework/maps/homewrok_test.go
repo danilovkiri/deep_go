@@ -10,6 +10,12 @@ import (
 
 // go test -v homework_test.go
 
+const (
+	less    = -1
+	equal   = 0
+	greater = 1
+)
+
 type Node[K cmp.Ordered, V any] struct {
 	key   K
 	value V
@@ -41,52 +47,26 @@ func (m *OrderedMap[K, V]) Get(key K) (V, bool) {
 }
 
 func (m *OrderedMap[K, V]) Insert(key K, value V) {
-	if m.root == nil {
-		m.root = &Node[K, V]{
-			key:   key,
-			value: value,
-			left:  nil,
-			right: nil,
-		}
+	m.root = m.insertRecursive(m.root, key, value)
+}
+
+func (m *OrderedMap[K, V]) insertRecursive(root *Node[K, V], key K, value V) *Node[K, V] {
+	if root == nil {
+		root = &Node[K, V]{key: key, value: value}
 		m.size++
-		return
+		return root
 	}
 
-	current := m.root
-	for {
-		switch m.cmp(key, current.key) {
-		case -1:
-			if current.left != nil {
-				current = current.left
-				continue
-			}
-			current.left = &Node[K, V]{
-				key:   key,
-				value: value,
-				left:  nil,
-				right: nil,
-			}
-			m.size++
-			return
-		case 1:
-			if current.right != nil {
-				current = current.right
-				continue
-			}
-			current.right = &Node[K, V]{
-				key:   key,
-				value: value,
-				left:  nil,
-				right: nil,
-			}
-			m.size++
-			return
-
-		default:
-			current.value = value
-			return
-		}
+	switch m.cmp(key, root.key) {
+	case less:
+		root.left = m.insertRecursive(root.left, key, value)
+	case greater:
+		root.right = m.insertRecursive(root.right, key, value)
+	case equal:
+		root.value = value
 	}
+
+	return root
 }
 
 func (m *OrderedMap[K, V]) Erase(key K) {
@@ -114,20 +94,15 @@ func (m *OrderedMap[K, V]) remove(root *Node[K, V], key K) *Node[K, V] {
 	}
 
 	switch m.cmp(key, root.key) {
-	case -1:
+	case less:
 		root.left = m.remove(root.left, key)
-	case 1:
+	case greater:
 		root.right = m.remove(root.right, key)
-	default:
-		if root.left == nil && root.right == nil { // excessive but left for clarity
-			m.size--
-			return nil
-		}
+	case equal:
 		if root.left == nil {
 			m.size--
 			return root.right
-		}
-		if root.right == nil {
+		} else if root.right == nil {
 			m.size--
 			return root.left
 		}
@@ -151,9 +126,9 @@ func findNode[K cmp.Ordered, V any](root *Node[K, V], key K, cmp func(x, y K) in
 	}
 
 	switch cmp(key, root.key) {
-	case -1:
+	case less:
 		return findNode[K, V](root.left, key, cmp)
-	case 1:
+	case greater:
 		return findNode[K, V](root.right, key, cmp)
 	default:
 		return root
