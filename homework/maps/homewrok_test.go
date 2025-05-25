@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"reflect"
 	"testing"
 
@@ -9,36 +10,142 @@ import (
 
 // go test -v homework_test.go
 
-type OrderedMap struct {
-	// need to implement
+const (
+	less    = -1
+	equal   = 0
+	greater = 1
+)
+
+type Node[K cmp.Ordered, V any] struct {
+	key   K
+	value V
+	left  *Node[K, V]
+	right *Node[K, V]
 }
 
-func NewOrderedMap() OrderedMap {
-	return OrderedMap{} // need to implement
+type OrderedMap[K cmp.Ordered, V any] struct {
+	root *Node[K, V]
+	size int
+	cmp  func(x, y K) int
 }
 
-func (m *OrderedMap) Insert(key, value int) {
-	// need to implement
+func NewOrderedMap[K cmp.Ordered, V any]() OrderedMap[K, V] {
+	return OrderedMap[K, V]{
+		root: nil,
+		size: 0,
+		cmp:  cmp.Compare[K],
+	}
 }
 
-func (m *OrderedMap) Erase(key int) {
-	// need to implement
+func (m *OrderedMap[K, V]) Get(key K) (V, bool) {
+	if node := findNode(m.root, key, m.cmp); node != nil {
+		return node.value, true
+	}
+
+	var zero V
+	return zero, false
 }
 
-func (m *OrderedMap) Contains(key int) bool {
-	return false // need to implement
+func (m *OrderedMap[K, V]) Insert(key K, value V) {
+	m.root = m.insertRecursive(m.root, key, value)
 }
 
-func (m *OrderedMap) Size() int {
-	return 0 // need to implement
+func (m *OrderedMap[K, V]) insertRecursive(root *Node[K, V], key K, value V) *Node[K, V] {
+	if root == nil {
+		root = &Node[K, V]{key: key, value: value}
+		m.size++
+		return root
+	}
+
+	switch m.cmp(key, root.key) {
+	case less:
+		root.left = m.insertRecursive(root.left, key, value)
+	case greater:
+		root.right = m.insertRecursive(root.right, key, value)
+	case equal:
+		root.value = value
+	}
+
+	return root
 }
 
-func (m *OrderedMap) ForEach(action func(int, int)) {
-	// need to implement
+func (m *OrderedMap[K, V]) Erase(key K) {
+	m.root = m.remove(m.root, key)
 }
 
-func TestCircularQueue(t *testing.T) {
-	data := NewOrderedMap()
+func (m *OrderedMap[K, V]) Contains(key K) bool {
+	if node := findNode(m.root, key, m.cmp); node != nil {
+		return true
+	}
+	return false
+}
+
+func (m *OrderedMap[K, V]) Size() int {
+	return m.size
+}
+
+func (m *OrderedMap[K, V]) ForEach(action func(kye K, value V)) {
+	traverse(m.root, action)
+}
+
+func (m *OrderedMap[K, V]) remove(root *Node[K, V], key K) *Node[K, V] {
+	if root == nil {
+		return nil
+	}
+
+	switch m.cmp(key, root.key) {
+	case less:
+		root.left = m.remove(root.left, key)
+	case greater:
+		root.right = m.remove(root.right, key)
+	case equal:
+		if root.left == nil {
+			m.size--
+			return root.right
+		} else if root.right == nil {
+			m.size--
+			return root.left
+		}
+
+		// find the min node of the right subtree
+		minNode := root.right
+		for minNode != nil && minNode.left != nil {
+			minNode = minNode.left
+		}
+
+		root.key = minNode.key
+		root.value = minNode.value
+		root.right = m.remove(root.right, minNode.key)
+	}
+	return root
+}
+
+func findNode[K cmp.Ordered, V any](root *Node[K, V], key K, cmp func(x, y K) int) *Node[K, V] {
+	if root == nil {
+		return nil
+	}
+
+	switch cmp(key, root.key) {
+	case less:
+		return findNode[K, V](root.left, key, cmp)
+	case greater:
+		return findNode[K, V](root.right, key, cmp)
+	default:
+		return root
+	}
+}
+
+func traverse[K cmp.Ordered, V any](node *Node[K, V], action func(key K, value V)) {
+	if node == nil {
+		return
+	}
+	traverse(node.left, action)
+	action(node.key, node.value)
+	traverse(node.right, action)
+}
+
+func TestOrderedMap(t *testing.T) {
+	data := NewOrderedMap[int, int]()
 	assert.Zero(t, data.Size())
 
 	data.Insert(10, 10)
