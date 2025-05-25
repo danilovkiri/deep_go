@@ -10,8 +10,22 @@ import (
 
 // go test -v homework_test.go
 
-func Defragment(memory []byte, pointers []unsafe.Pointer) {
-	// need to implement
+func Defragment(memory []byte, pointers []unsafe.Pointer, regionSize int) {
+	if len(memory) == 0 || len(pointers) == 0 || regionSize <= 0 {
+		return
+	}
+
+	writeIdx := 0
+	for i := 0; i < len(pointers); i++ {
+		offset := int(uintptr(pointers[i]) - uintptr(unsafe.Pointer(&memory[0])))
+		copy(memory[writeIdx:writeIdx+regionSize], memory[offset:offset+regionSize])
+		pointers[i] = unsafe.Pointer(&memory[writeIdx])
+		writeIdx += regionSize
+	}
+
+	for i := writeIdx; i < len(memory); i++ {
+		memory[i] = 0
+	}
 }
 
 func TestDefragmentation(t *testing.T) {
@@ -43,7 +57,7 @@ func TestDefragmentation(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00,
 	}
 
-	Defragment(fragmentedMemory, fragmentedPointers)
+	Defragment(fragmentedMemory, fragmentedPointers, 1)
 	assert.True(t, reflect.DeepEqual(defragmentedMemory, fragmentedMemory))
 	assert.True(t, reflect.DeepEqual(defragmentedPointers, fragmentedPointers))
 }
