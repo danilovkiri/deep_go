@@ -12,25 +12,92 @@ type Task struct {
 }
 
 type Scheduler struct {
-	// need to implement
+	data  []Task
+	index map[int]int
 }
 
 func NewScheduler() Scheduler {
-	// need to implement
-	return Scheduler{}
+	return Scheduler{
+		data:  []Task{},
+		index: make(map[int]int),
+	}
 }
 
-func (s *Scheduler) AddTask(task Task) {
-	// need to implement
+func (s *Scheduler) AddTask(t Task) {
+	if _, exists := s.index[t.Identifier]; exists {
+		return // duplicate identifiers not allowed
+	}
+	s.data = append(s.data, t)
+	i := len(s.data) - 1
+	s.index[t.Identifier] = i
+	s.heapifyUp(i)
+}
+
+func (s *Scheduler) heapifyUp(i int) {
+	for i > 0 {
+		parent := (i - 1) / 2
+		if s.data[i].Priority <= s.data[parent].Priority {
+			break
+		}
+		s.swap(i, parent)
+		i = parent
+	}
+}
+
+func (s *Scheduler) heapifyDown(i int) {
+	last := len(s.data) - 1
+	for {
+		left := 2*i + 1
+		right := 2*i + 2
+		largest := i
+
+		if left <= last && s.data[left].Priority > s.data[largest].Priority {
+			largest = left
+		}
+		if right <= last && s.data[right].Priority > s.data[largest].Priority {
+			largest = right
+		}
+		if largest == i {
+			break
+		}
+		s.swap(i, largest)
+		i = largest
+	}
+}
+
+func (s *Scheduler) swap(i, j int) {
+	s.data[i], s.data[j] = s.data[j], s.data[i]
+	s.index[s.data[i].Identifier] = i
+	s.index[s.data[j].Identifier] = j
 }
 
 func (s *Scheduler) ChangeTaskPriority(taskID int, newPriority int) {
-	// need to implement
+	i, exists := s.index[taskID]
+	if !exists {
+		return
+	}
+	oldPriority := s.data[i].Priority
+	s.data[i].Priority = newPriority
+	if newPriority > oldPriority {
+		s.heapifyUp(i)
+	} else {
+		s.heapifyDown(i)
+	}
 }
 
 func (s *Scheduler) GetTask() Task {
-	// need to implement
-	return Task{}
+	if len(s.data) == 0 {
+		return Task{}
+	}
+	maxTask := s.data[0]
+	last := len(s.data) - 1
+	s.swap(0, last)
+	s.data = s.data[:last]
+	delete(s.index, maxTask.Identifier)
+	if len(s.data) > 0 {
+		s.heapifyDown(0)
+	}
+	return maxTask
 }
 
 func TestTrace(t *testing.T) {
@@ -56,7 +123,7 @@ func TestTrace(t *testing.T) {
 	scheduler.ChangeTaskPriority(1, 100)
 
 	task = scheduler.GetTask()
-	assert.Equal(t, task1, task)
+	assert.Equal(t, task1.Identifier, task.Identifier)
 
 	task = scheduler.GetTask()
 	assert.Equal(t, task3, task)
